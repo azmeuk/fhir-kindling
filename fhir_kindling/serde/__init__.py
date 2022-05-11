@@ -1,1 +1,2 @@
-from .flatten import flatten_resource, flatten_resources
+from .flatten import flatten_resource
+from .flatten import flatten_resources

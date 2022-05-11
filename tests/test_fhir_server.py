@@ -1,25 +1,25 @@
 import os
 import uuid
-
-import pytest
-from fhir.resources import FHIRAbstractModel
 from unittest import mock
 
+import pytest
+from dotenv import find_dotenv
+from dotenv import load_dotenv
+from fhir.resources import FHIRAbstractModel
+from fhir.resources.address import Address
+from fhir.resources.bundle import Bundle
+from fhir.resources.bundle import BundleEntry
+from fhir.resources.bundle import BundleEntryRequest
 from fhir.resources.condition import Condition
 from fhir.resources.encounter import Encounter
-from fhir.resources.reference import Reference
-from requests.auth import HTTPBasicAuth
-
-from fhir_kindling import FhirServer, FHIRQuery
-from dotenv import load_dotenv, find_dotenv
 from fhir.resources.organization import Organization
-from fhir.resources.address import Address
-from fhir.resources.bundle import Bundle, BundleEntry, BundleEntryRequest
 from fhir.resources.patient import Patient
-
+from fhir.resources.reference import Reference
+from fhir_kindling import FHIRQuery
+from fhir_kindling import FhirServer
 from fhir_kindling.fhir_query import FHIRQueryParameters
 from fhir_kindling.generators import PatientGenerator
-from fhir_kindling.util.references import reference_graph
+from requests.auth import HTTPBasicAuth
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def oidc_server(api_url):
         api_address=api_url,
         client_id=os.getenv("CLIENT_ID"),
         client_secret=os.getenv("CLIENT_SECRET"),
-        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL")
+        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL"),
     )
     return server
 
@@ -50,7 +50,7 @@ def fhir_server(api_url):
         api_address=api_url,
         client_id=os.getenv("CLIENT_ID"),
         client_secret=os.getenv("CLIENT_SECRET"),
-        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL")
+        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL"),
     )
     return server
 
@@ -72,10 +72,7 @@ def org_bundle(api_url):
         entry = BundleEntry.construct()
 
         entry.request = BundleEntryRequest(
-            **{
-                "method": "POST",
-                "url": org.get_resource_type()
-            }
+            **{"method": "POST", "url": org.get_resource_type()}
         )
 
         entry.resource = org.dict()
@@ -145,144 +142,154 @@ def test_fhir_server_from_env():
         server = FhirServer.from_env(no_auth=True)
         assert server
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "FHIR_USER": "",
-                "FHIR_PW": "",
-                "FHIR_TOKEN": "",
-                "CLIENT_ID": "",
-                "CLIENT_SECRET": "",
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "FHIR_USER": "",
+            "FHIR_PW": "",
+            "FHIR_TOKEN": "",
+            "CLIENT_ID": "",
+            "CLIENT_SECRET": "",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
 
     # user and no password in env
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "FHIR_USER": "user",
-                "FHIR_PW": "",
-                "FHIR_TOKEN": "",
-                "CLIENT_ID": "",
-                "CLIENT_SECRET": "",
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "FHIR_USER": "user",
+            "FHIR_PW": "",
+            "FHIR_TOKEN": "",
+            "CLIENT_ID": "",
+            "CLIENT_SECRET": "",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
 
     # correct basic auth config
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "FHIR_USER": "user",
-                "FHIR_PW": "password",
-                "FHIR_TOKEN": "",
-                "CLIENT_ID": "",
-                "CLIENT_SECRET": "",
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "FHIR_USER": "user",
+            "FHIR_PW": "password",
+            "FHIR_TOKEN": "",
+            "CLIENT_ID": "",
+            "CLIENT_SECRET": "",
+        },
+    ):
         server = FhirServer.from_env()
         assert server.auth
 
     # token auth
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "FHIR_TOKEN": "token",
-                "CLIENT_ID": "",
-                "CLIENT_SECRET": "",
-                "FHIR_USER": "",
-                "FHIR_PW": "",
-            }
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "FHIR_TOKEN": "token",
+            "CLIENT_ID": "",
+            "CLIENT_SECRET": "",
+            "FHIR_USER": "",
+            "FHIR_PW": "",
+        },
     ):
         server = FhirServer.from_env()
         assert server.auth
 
     # conflicting auth token and user/password
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "FHIR_USER": "user",
-                "FHIR_PW": "password",
-                "FHIR_TOKEN": "token",
-                "CLIENT_ID": "",
-                "CLIENT_SECRET": "",
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "FHIR_USER": "user",
+            "FHIR_PW": "password",
+            "FHIR_TOKEN": "token",
+            "CLIENT_ID": "",
+            "CLIENT_SECRET": "",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
 
     # conflicting auth user and client_id/secret
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "FHIR_USER": "user",
-                "FHIR_PW": "password",
-                "CLIENT_ID": "token"
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "FHIR_USER": "user",
+            "FHIR_PW": "password",
+            "CLIENT_ID": "token",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
 
     # conflicting auth token and client_id/secret
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "CLIENT_ID": "token",
-                "FHIR_TOKEN": "token"
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "CLIENT_ID": "token",
+            "FHIR_TOKEN": "token",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
 
     # missing client secret & provider url
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "CLIENT_ID": "token",
-                "CLIENT_SECRET": "",
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "CLIENT_ID": "token",
+            "CLIENT_SECRET": "",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
 
     # missing provider url
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "CLIENT_ID": "token",
-                "CLIENT_SECRET": "token",
-                "OIDC_PROVIDER_URL": "",
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "CLIENT_ID": "token",
+            "CLIENT_SECRET": "token",
+            "OIDC_PROVIDER_URL": "",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
     # missing secret
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "CLIENT_ID": "token",
-                "OIDC_PROVIDER_URL": "https://test.fhir.org/r4",
-                "CLIENT_SECRET": "",
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "CLIENT_ID": "token",
+            "OIDC_PROVIDER_URL": "https://test.fhir.org/r4",
+            "CLIENT_SECRET": "",
+        },
+    ):
         with pytest.raises(EnvironmentError):
             server = FhirServer.from_env()
 
     print(client_id, client_secret, oidc_provider_url)
     with mock.patch.dict(
-            os.environ,
-            {
-                "FHIR_API_URL": "http://test.fhir.org/r4",
-                "CLIENT_ID": client_id,
-                "CLIENT_SECRET": client_secret,
-                "OIDC_PROVIDER_URL": oidc_provider_url,
-                "FHIR_USER": "",
-                "FHIR_PW": "",
-                "FHIR_TOKEN": ""
-            }):
+        os.environ,
+        {
+            "FHIR_API_URL": "http://test.fhir.org/r4",
+            "CLIENT_ID": client_id,
+            "CLIENT_SECRET": client_secret,
+            "OIDC_PROVIDER_URL": oidc_provider_url,
+            "FHIR_USER": "",
+            "FHIR_PW": "",
+            "FHIR_TOKEN": "",
+        },
+    ):
         server = FhirServer.from_env()
 
 
@@ -300,7 +307,7 @@ def test_upload_single_resource(fhir_server: FhirServer):
 
     response = fhir_server.add(org)
 
-    response2 = fhir_server.add(org.dict())
+    fhir_server.add(org.dict())
 
     with pytest.raises(ValueError):
         fhir_server.add({"dshadk": "sjdhka"})
@@ -371,7 +378,9 @@ def test_delete(fhir_server: FhirServer):
     delete_resource = fhir_server.delete(resources=add_response.resources[50:75])
     print(delete_resource)
     assert delete_resource
-    delete_resource = fhir_server.delete(resources=[r.dict() for r in add_response.resources[75:]])
+    delete_resource = fhir_server.delete(
+        resources=[r.dict() for r in add_response.resources[75:]]
+    )
     assert delete_resource
     print(delete_resource)
 
@@ -414,6 +423,7 @@ def test_update(fhir_server: FhirServer):
 #     query = origin_server.query("Condition").all()
 #     print(query.resources)
 
+
 def test_custom_headers():
     headers = {"X-Custom-Header": "Test", "X-Custom-Header2": "Test2"}
     server = FhirServer(api_address="https://fhir.test/fhir", headers=headers)
@@ -430,19 +440,23 @@ def test_custom_auth():
     assert server.session.auth == auth
 
     with pytest.raises(ValueError):
-        server = FhirServer(api_address="https://fhir.test/fhir", auth=auth, username="test")
+        server = FhirServer(
+            api_address="https://fhir.test/fhir", auth=auth, username="test"
+        )
 
     with pytest.raises(ValueError):
-        server = FhirServer(api_address="https://fhir.test/fhir", auth=auth, token="test")
+        server = FhirServer(
+            api_address="https://fhir.test/fhir", auth=auth, token="test"
+        )
 
     with pytest.raises(ValueError):
-        server = FhirServer(api_address="https://fhir.test/fhir", auth=auth, client_id="test")
+        server = FhirServer(
+            api_address="https://fhir.test/fhir", auth=auth, client_id="test"
+        )
 
 
 def test_query_with_params(fhir_server: FhirServer):
-    params = FHIRQueryParameters(
-        resource="Condition"
-    )
+    params = FHIRQueryParameters(resource="Condition")
     query = fhir_server.query(query_parameters=params)
     response = query.all()
 
@@ -495,7 +509,9 @@ def test_get_many(fhir_server: FhirServer):
 
 
 def test_resolve_reference_graph(fhir_server: FhirServer):
-    patients, patient_references = PatientGenerator(n=10, generate_ids=True).generate(references=True)
+    patients, patient_references = PatientGenerator(n=10, generate_ids=True).generate(
+        references=True
+    )
     organization = Organization(name="Test", id="test-org")
     practitioner = Organization(name="Practitioner", id="test-practitioner")
     conditions = []
@@ -503,13 +519,18 @@ def test_resolve_reference_graph(fhir_server: FhirServer):
         **{
             "id": "test-encounter",
             "status": "planned",
-            "class": {"code": "AMB", "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"}
+            "class": {
+                "code": "AMB",
+                "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+            },
         }
     )
     for patient in patients:
         patient.managingOrganization = {"reference": organization.relative_path()}
         patient.generalPractitioner = [{"reference": practitioner.relative_path()}]
-        condition = Condition(subject={"reference": patient.relative_path()}, id=str(uuid.uuid4()))
+        condition = Condition(
+            subject={"reference": patient.relative_path()}, id=str(uuid.uuid4())
+        )
         condition.encounter = {"reference": encounter.relative_path()}
         conditions.append(condition)
 
@@ -517,7 +538,7 @@ def test_resolve_reference_graph(fhir_server: FhirServer):
     # print(resources)
 
     hapi_server = FhirServer(api_address="http://localhost:8082/fhir")
-    response = fhir_server._transfer_resources(hapi_server, resources)
+    fhir_server._transfer_resources(hapi_server, resources)
 
 
 def test_fhir_server_transfer(fhir_server: FhirServer):

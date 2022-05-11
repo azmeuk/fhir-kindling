@@ -1,25 +1,33 @@
-from typing import Union, Callable, List, Any
-from fhir.resources.resource import Resource
+from typing import Any
+from typing import Callable
+from typing import List
+from typing import Union
+
+import fhir.resources
+import requests.auth
+from fhir.resources import FHIRAbstractModel
 from fhir.resources.bundle import Bundle
 from fhir.resources.fhirresourcemodel import FHIRResourceModel
-from fhir.resources import FHIRAbstractModel
-import fhir.resources
-import requests
-import requests.auth
-
+from fhir_kindling.fhir_query.query_parameters import FHIRQueryParameters
+from fhir_kindling.fhir_query.query_parameters import FieldParameter
+from fhir_kindling.fhir_query.query_parameters import IncludeParameter
+from fhir_kindling.fhir_query.query_parameters import QueryOperators
+from fhir_kindling.fhir_query.query_parameters import ReverseChainParameter
 from fhir_kindling.fhir_query.query_response import QueryResponse
-from fhir_kindling.fhir_query.query_parameters import FHIRQueryParameters, IncludeParameter, FieldParameter, \
-    ReverseChainParameter, QueryOperators
 
 
 class FHIRQuery:
-    def __init__(self,
-                 base_url: str,
-                 resource: Union[FHIRResourceModel, fhir.resources.FHIRAbstractModel, str] = None,
-                 query_parameters: FHIRQueryParameters = None,
-                 auth: requests.auth.AuthBase = None,
-                 session: requests.Session = None,
-                 output_format: str = "json"):
+    def __init__(
+        self,
+        base_url: str,
+        resource: Union[
+            FHIRResourceModel, fhir.resources.FHIRAbstractModel, str
+        ] = None,
+        query_parameters: FHIRQueryParameters = None,
+        auth: requests.auth.AuthBase = None,
+        session: requests.Session = None,
+        output_format: str = "json",
+    ):
 
         self.base_url = base_url
 
@@ -34,16 +42,24 @@ class FHIRQuery:
         if resource:
             if isinstance(resource, str):
                 self.resource = fhir.resources.get_fhir_model_class(resource)
-            elif isinstance(resource, FHIRResourceModel) or isinstance(resource, FHIRAbstractModel):
+            elif isinstance(resource, FHIRResourceModel) or isinstance(
+                resource, FHIRAbstractModel
+            ):
                 self.resource = resource
             else:
-                raise ValueError(f"resource must be a FHIRResourceModel or a string, given {type(resource)}")
+                raise ValueError(
+                    f"resource must be a FHIRResourceModel or a string, given {type(resource)}"
+                )
             self.resource = self.resource.construct()
-            self.query_parameters = FHIRQueryParameters(resource=self.resource.resource_type)
+            self.query_parameters = FHIRQueryParameters(
+                resource=self.resource.resource_type
+            )
 
         elif query_parameters:
             self.query_parameters = query_parameters
-            self.resource = fhir.resources.get_fhir_model_class(query_parameters.resource)
+            self.resource = fhir.resources.get_fhir_model_class(
+                query_parameters.resource
+            )
             self.resource = self.resource.construct()
         else:
             raise ValueError("Either resource or query_parameters must be set")
@@ -54,13 +70,14 @@ class FHIRQuery:
         self._count = None
         self._query_response: Union[Bundle, str, None] = None
 
-    def where(self,
-              field: str = None,
-              operator: Union[QueryOperators, str] = None,
-              value: Union[int, float, bool, str, list] = None,
-              field_param: FieldParameter = None,
-              filter_dict: dict = None
-              ) -> 'FHIRQuery':
+    def where(
+        self,
+        field: str = None,
+        operator: Union[QueryOperators, str] = None,
+        value: Union[int, float, bool, str, list] = None,
+        field_param: FieldParameter = None,
+        filter_dict: dict = None,
+    ) -> "FHIRQuery":
         """
         Add search conditions regarding a specific field of the queried resource.
         Conditions can be added via FieldParameter class instance, via a dictionary or specifying condition via this
@@ -93,8 +110,12 @@ class FHIRQuery:
             added_query_param = FieldParameter(**filter_dict)
         elif field:
             if not (operator or operator == "") and value:
-                kv_error_message = f"\n\tField: {field}\n\tOperator: {operator}\n\tValue: {value}"
-                raise ValueError(f"Must provide operator and search value when using kv parameters.{kv_error_message}")
+                kv_error_message = (
+                    f"\n\tField: {field}\n\tOperator: {operator}\n\tValue: {value}"
+                )
+                raise ValueError(
+                    f"Must provide operator and search value when using kv parameters.{kv_error_message}"
+                )
             else:
 
                 if isinstance(operator, str):
@@ -102,11 +123,17 @@ class FHIRQuery:
                 if isinstance(operator, QueryOperators):
                     operator = operator
                 else:
-                    raise ValueError(f"Operator must be a string or QueryOperators. Got {operator}")
-                added_query_param = FieldParameter(field=field, operator=operator, value=value)
+                    raise ValueError(
+                        f"Operator must be a string or QueryOperators. Got {operator}"
+                    )
+                added_query_param = FieldParameter(
+                    field=field, operator=operator, value=value
+                )
 
         else:
-            raise ValueError("Must provide a valid instance of either field_param or filter_dict or the kv parameters")
+            raise ValueError(
+                "Must provide a valid instance of either field_param or filter_dict or the kv parameters"
+            )
 
         query_field_params = self.query_parameters.resource_parameters
         if isinstance(query_field_params, list) and len(query_field_params) > 0:
@@ -118,14 +145,15 @@ class FHIRQuery:
 
         return self
 
-    def include(self,
-                resource: str = None,
-                reference_param: str = None,
-                target: str = None,
-                reverse: bool = False,
-                include_dict: dict = None,
-                include_param: IncludeParameter = None
-                ) -> 'FHIRQuery':
+    def include(
+        self,
+        resource: str = None,
+        reference_param: str = None,
+        target: str = None,
+        reverse: bool = False,
+        include_dict: dict = None,
+        include_param: IncludeParameter = None,
+    ) -> "FHIRQuery":
 
         """
         Specify resources related to the queried resource, which should be included in the query results.
@@ -156,11 +184,16 @@ class FHIRQuery:
         elif isinstance(include_param, IncludeParameter):
             added_include_param = include_param
         elif resource and reference_param:
-            added_include_param = IncludeParameter(resource=resource, search_param=reference_param, target=target,
-                                                   reverse=reverse)
+            added_include_param = IncludeParameter(
+                resource=resource,
+                search_param=reference_param,
+                target=target,
+                reverse=reverse,
+            )
         else:
             raise ValueError(
-                "Must provide a valid instance of either include_dict or include_param or the kv parameters")
+                "Must provide a valid instance of either include_dict or include_param or the kv parameters"
+            )
 
         query_include_params = self.query_parameters.include_parameters
         if isinstance(query_include_params, list) and len(query_include_params) > 0:
@@ -172,15 +205,16 @@ class FHIRQuery:
 
         return self
 
-    def has(self,
-            resource: str = None,
-            reference_param: str = None,
-            search_param: str = None,
-            operator: QueryOperators = None,
-            value: Union[int, float, bool, str, list] = None,
-            has_param_dict: dict = None,
-            has_param: ReverseChainParameter = None
-            ) -> 'FHIRQuery':
+    def has(
+        self,
+        resource: str = None,
+        reference_param: str = None,
+        search_param: str = None,
+        operator: QueryOperators = None,
+        value: Union[int, float, bool, str, list] = None,
+        has_param_dict: dict = None,
+        has_param: ReverseChainParameter = None,
+    ) -> "FHIRQuery":
         """
         Specify query parameters for other resources that are referenced by the queried, only the resources whose
         referenced resources match the specified search criteria are included in the results.
@@ -202,9 +236,13 @@ class FHIRQuery:
         # validate method input
         if has_param_dict and has_param:
             raise ValueError("Cannot use both has_param_dict and has_param")
-        elif has_param_dict and (resource or reference_param or search_param or operator or value):
+        elif has_param_dict and (
+            resource or reference_param or search_param or operator or value
+        ):
             raise ValueError("Cannot use both has_param_dict and kv parameters")
-        elif has_param and (resource or reference_param or search_param or operator or value):
+        elif has_param and (
+            resource or reference_param or search_param or operator or value
+        ):
             raise ValueError("Cannot use both has_param and kv parameters")
 
         # parse ReverseChainParameter from method input
@@ -213,11 +251,17 @@ class FHIRQuery:
         elif isinstance(has_param, ReverseChainParameter):
             added_has_param = has_param
         elif resource and reference_param and search_param and operator and value:
-            added_has_param = ReverseChainParameter(resource=resource, reference_param=reference_param,
-                                                    search_param=search_param, operator=operator, value=value)
+            added_has_param = ReverseChainParameter(
+                resource=resource,
+                reference_param=reference_param,
+                search_param=search_param,
+                operator=operator,
+                value=value,
+            )
         else:
             raise ValueError(
-                "Either has_param_dict, a parameter instance or a valid set of kv parameters must be provided")
+                "Either has_param_dict, a parameter instance or a valid set of kv parameters must be provided"
+            )
 
         query_has_params = self.query_parameters.has_parameters
         if isinstance(query_has_params, list) and len(query_has_params) > 0:
@@ -228,9 +272,13 @@ class FHIRQuery:
 
         return self
 
-    def all(self,
-            page_callback: Union[Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None] = None,
-            count: int = None) -> QueryResponse:
+    def all(
+        self,
+        page_callback: Union[
+            Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None
+        ] = None,
+        count: int = None,
+    ) -> QueryResponse:
         """
         Execute the query and return all results matching the query parameters.
 
@@ -246,10 +294,14 @@ class FHIRQuery:
         self._count = count
         return self._execute_query(page_callback=page_callback, count=count)
 
-    def limit(self,
-              n: int,
-              page_callback: Union[Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None] = None,
-              count: int = None) -> QueryResponse:
+    def limit(
+        self,
+        n: int,
+        page_callback: Union[
+            Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None
+        ] = None,
+        count: int = None,
+    ) -> QueryResponse:
         """
         Execute the query and return the first n results matching the query parameters.
         Args:
@@ -307,9 +359,13 @@ class FHIRQuery:
         self.session.auth = self.auth
         self.session.headers.update({"Content-Type": "application/fhir+json"})
 
-    def _execute_query(self,
-                       page_callback: Union[Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None] = None,
-                       count: int = None) -> QueryResponse:
+    def _execute_query(
+        self,
+        page_callback: Union[
+            Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None
+        ] = None,
+        count: int = None,
+    ) -> QueryResponse:
         r = self.session.get(self.query_url)
         r.raise_for_status()
         response = QueryResponse(
@@ -348,7 +404,9 @@ class FHIRQuery:
             rev_includes = []
             for include_param in self.query_parameters.include_parameters:
                 if include_param.reverse:
-                    rev_string = f"{include_param.resource}:{include_param.search_param}"
+                    rev_string = (
+                        f"{include_param.resource}:{include_param.search_param}"
+                    )
                     if include_param.target:
                         rev_string += f":{include_param.target}"
                     rev_includes.append(rev_string)
@@ -359,9 +417,13 @@ class FHIRQuery:
                     includes.append(include_string)
 
             include_repr = f", include={','.join(includes)}" if includes else ""
-            rev_include_repr = f", reverse_includes={','.join(rev_includes)}" if rev_includes else ""
+            rev_include_repr = (
+                f", reverse_includes={','.join(rev_includes)}" if rev_includes else ""
+            )
             includes_repr = include_repr + rev_include_repr
-            return f"<FHIRQuery(resource={resource}{includes_repr}, url={self.query_url}>"
+            return (
+                f"<FHIRQuery(resource={resource}{includes_repr}, url={self.query_url}>"
+            )
         else:
 
             return f"<FHIRQuery(resource={resource}, url={self.query_url}>"

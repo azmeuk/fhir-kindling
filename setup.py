@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-
 """The setup script."""
-from setuptools import setup, find_packages
+from setuptools import find_packages
+from setuptools import setup
 
 with open("README.md") as readme_file:
     readme = readme_file.read()
@@ -28,7 +28,11 @@ setup(
         "Programming Language :: Python :: 3.9",
     ],
     description="CRUD Operations against FHIR servers, resource validation and synthetic FHIR resource generation.",
-    entry_points={"console_scripts": ["fhir_kindling=fhir_kindling.cli.cli:main", ], },
+    entry_points={
+        "console_scripts": [
+            "fhir_kindling=fhir_kindling.cli.cli:main",
+        ],
+    },
     long_description=readme + history,
     long_description_content_type="text/markdown",
     install_requires=[
@@ -42,11 +46,9 @@ setup(
         "pyyaml",
         "xmltodict",
         "pydantic",
-        "networkx"
+        "networkx",
     ],
-    extras_require={
-        'csv': ["pandas"]
-    },
+    extras_require={"csv": ["pandas"]},
     package_data={
         "": ["*.txt"],
     },
@@ -58,6 +60,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/migraf/fhir-kindling",
-    version='0.8.4',
+    version="0.8.4",
     zip_safe=False,
 )

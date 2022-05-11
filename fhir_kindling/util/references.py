@@ -1,12 +1,13 @@
-from typing import Union, List, Tuple
+from typing import List
+from typing import Tuple
+from typing import Union
 
-from fhir.resources.resource import Resource
-from fhir.resources.fhirtypes import ReferenceType
+import networkx as nx
 from fhir.resources import FHIRAbstractModel
-
+from fhir.resources.fhirtypes import ReferenceType
+from fhir.resources.resource import Resource
 from fhir_kindling.fhir_query.query_response import QueryResponse
 from fhir_kindling.util.resources import get_resource_fields
-import networkx as nx
 
 
 def extract_references(resource: Resource) -> List[Tuple[str, str, str, bool]]:
@@ -61,12 +62,16 @@ def reference_graph(resources: List[Union[Resource, FHIRAbstractModel]]) -> nx.D
             reference_path = f"{reference[1]}/{reference[2]}"
             if reference_path not in dg:
                 dg.add_node(reference_path, resource=None)
-            dg.add_edge(reference_path, path, field=reference[0], list_field=reference[3])
+            dg.add_edge(
+                reference_path, path, field=reference[0], list_field=reference[3]
+            )
 
     return dg
 
 
-def check_missing_references(resources: List[Union[Resource, FHIRAbstractModel]]) -> List[str]:
+def check_missing_references(
+    resources: List[Union[Resource, FHIRAbstractModel]]
+) -> List[str]:
     """
     Checks the references in a list of resources to ensure that the referenced resources exist in the list.
     Args:
@@ -103,11 +108,15 @@ def _get_missing_references(references: dict, resource_ids: dict) -> List[str]:
                     missing_references.append(f"{ref_resource}/{ref_id}")
         # if there are no resources of the type add all references to missing references
         else:
-            missing_references.extend([f"{ref_resource}/{ref_id}" for ref_id in reference_set])
+            missing_references.extend(
+                [f"{ref_resource}/{ref_id}" for ref_id in reference_set]
+            )
     return missing_references
 
 
-def _update_reference_set(references: dict, resource: Union[Resource, FHIRAbstractModel]):
+def _update_reference_set(
+    references: dict, resource: Union[Resource, FHIRAbstractModel]
+):
     resource_references = extract_references(resource)
     for reference in resource_references:
         reference_set = references.get(reference[1])

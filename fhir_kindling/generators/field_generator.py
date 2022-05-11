@@ -1,7 +1,12 @@
 import random
+from typing import Any
+from typing import Callable
+from typing import List
+from typing import Optional
 
-from pydantic import BaseModel, validator, root_validator
-from typing import List, Callable, Any, Optional
+from pydantic import BaseModel
+from pydantic import root_validator
+from pydantic import validator
 
 
 class FieldGenerator(BaseModel):
@@ -35,7 +40,9 @@ class FieldGenerator(BaseModel):
     def generate(self):
         if self.choices:
             if self.choice_probabilities:
-                return random.choices(self.choices, weights=self.choice_probabilities, k=1)[0]
+                return random.choices(
+                    self.choices, weights=self.choice_probabilities, k=1
+                )[0]
             else:
                 return random.choice(self.choices)
         else:

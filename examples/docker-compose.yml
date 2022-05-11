@@ -26,4 +26,3 @@ services:
       hapi.fhir.default_encoding: json
       hapi.fhir.: json
       hapi.fhir.server_address: "http://localhost:8082/fhir"
-

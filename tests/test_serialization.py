@@ -1,10 +1,11 @@
 import os
 
 import pytest
-from dotenv import load_dotenv, find_dotenv
-
+from dotenv import find_dotenv
+from dotenv import load_dotenv
 from fhir_kindling import FhirServer
-from fhir_kindling.serde.flatten import flatten_resource, flatten_resources
+from fhir_kindling.serde.flatten import flatten_resource
+from fhir_kindling.serde.flatten import flatten_resources
 
 
 @pytest.fixture
@@ -23,17 +24,17 @@ def server(api_url):
         api_address=api_url,
         client_id=os.getenv("CLIENT_ID"),
         client_secret=os.getenv("CLIENT_SECRET"),
-        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL")
+        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL"),
     )
     return server
 
 
 def test_flatten_resource(server):
     patient = server.query("Patient").limit(1).resources[0]
-    flat_patient = flatten_resource(patient)
+    flatten_resource(patient)
 
     condition = server.query("Condition").limit(1).resources[0]
-    flat_condition = flatten_resource(condition)
+    flatten_resource(condition)
 
     # observation = server.query("Observation").limit(1).resources[0]
     # flat_obs = flatten_resource(observation)

@@ -60,7 +60,3 @@ from fhir_kindling import FhirServer
 
 fhir_server = FhirServer.from_env()
 ```
-
-
-
-

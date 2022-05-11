@@ -1,40 +1,53 @@
 import os
-from typing import List, Union, Tuple
-
-import requests
-from requests import Response
-import requests.auth
-from requests_oauthlib import OAuth2Session
-from oauthlib.oauth2 import BackendApplicationClient
-
-from fhir.resources import FHIRAbstractModel
-from fhir.resources.resource import Resource
-from fhir.resources.bundle import Bundle, BundleEntry, BundleEntryRequest
-from fhir.resources.capabilitystatement import CapabilityStatement
-from fhir.resources.reference import Reference
-from fhir.resources.fhirresourcemodel import FHIRResourceModel
-from fhir.resources import construct_fhir_element
-import fhir.resources
-
 import re
-import pendulum
-from networkx import DiGraph
+from typing import List
+from typing import Tuple
+from typing import Union
 
+import fhir.resources
+import pendulum
+import requests.auth
+from fhir.resources import construct_fhir_element
+from fhir.resources import FHIRAbstractModel
+from fhir.resources.bundle import Bundle
+from fhir.resources.bundle import BundleEntry
+from fhir.resources.bundle import BundleEntryRequest
+from fhir.resources.capabilitystatement import CapabilityStatement
+from fhir.resources.fhirresourcemodel import FHIRResourceModel
+from fhir.resources.reference import Reference
+from fhir.resources.resource import Resource
 from fhir_kindling.fhir_query import FHIRQuery
+from fhir_kindling.fhir_query.query_parameters import FHIRQueryParameters
+from fhir_kindling.fhir_query.query_parameters import FieldParameter
+from fhir_kindling.fhir_query.query_parameters import QueryOperators
 from fhir_kindling.fhir_query.query_response import QueryResponse
-from fhir_kindling.fhir_query.query_parameters import FHIRQueryParameters, FieldParameter, QueryOperators
 from fhir_kindling.fhir_server.auth import generate_auth
-from fhir_kindling.fhir_server.server_responses import ResourceCreateResponse, BundleCreateResponse, ServerSummary, \
-    TransferResponse
-from fhir_kindling.util.references import check_missing_references, reference_graph
+from fhir_kindling.fhir_server.server_responses import BundleCreateResponse
+from fhir_kindling.fhir_server.server_responses import ResourceCreateResponse
+from fhir_kindling.fhir_server.server_responses import ServerSummary
+from fhir_kindling.fhir_server.server_responses import TransferResponse
+from fhir_kindling.util.references import check_missing_references
+from fhir_kindling.util.references import reference_graph
+from networkx import DiGraph
+from oauthlib.oauth2 import BackendApplicationClient
+from requests import Response
+from requests_oauthlib import OAuth2Session
 
 
 class FhirServer:
-
-    def __init__(self, api_address: str, username: str = None, password: str = None, token: str = None,
-                 client_id: str = None, client_secret: str = None, oidc_provider_url: str = None,
-                 auth: requests.auth.AuthBase = None, headers: dict = None,
-                 fhir_server_type: str = "hapi"):
+    def __init__(
+        self,
+        api_address: str,
+        username: str = None,
+        password: str = None,
+        token: str = None,
+        client_id: str = None,
+        client_secret: str = None,
+        oidc_provider_url: str = None,
+        auth: requests.auth.AuthBase = None,
+        headers: dict = None,
+        fhir_server_type: str = "hapi",
+    ):
         """
         Initialize a FHIR server connection
         Args:
@@ -85,21 +98,39 @@ class FhirServer:
             env_auth = _auth_info_from_env()
             # static token
             if isinstance(env_auth, str):
-                return cls(api_address=api_address, token=env_auth, fhir_server_type=server_type)
+                return cls(
+                    api_address=api_address,
+                    token=env_auth,
+                    fhir_server_type=server_type,
+                )
             # username and password
             elif isinstance(env_auth, tuple) and len(env_auth) == 2:
-                return cls(api_address=api_address, username=env_auth[0], password=env_auth[1],
-                           fhir_server_type=server_type)
+                return cls(
+                    api_address=api_address,
+                    username=env_auth[0],
+                    password=env_auth[1],
+                    fhir_server_type=server_type,
+                )
             # oauth2/oidc
             elif isinstance(env_auth, tuple) and len(env_auth) == 3:
-                return cls(api_address=api_address, client_id=env_auth[0], client_secret=env_auth[1],
-                           oidc_provider_url=env_auth[2], fhir_server_type=server_type)
+                return cls(
+                    api_address=api_address,
+                    client_id=env_auth[0],
+                    client_secret=env_auth[1],
+                    oidc_provider_url=env_auth[2],
+                    fhir_server_type=server_type,
+                )
             else:
-                raise EnvironmentError("Authentication information could not be loaded from environment")
+                raise OSError(
+                    "Authentication information could not be loaded from environment"
+                )
 
-    def query(self, resource: Union[Resource, FHIRAbstractModel, str] = None,
-              query_parameters: FHIRQueryParameters = None,
-              output_format: str = "json") -> FHIRQuery:
+    def query(
+        self,
+        resource: Union[Resource, FHIRAbstractModel, str] = None,
+        query_parameters: FHIRQueryParameters = None,
+        output_format: str = "json",
+    ) -> FHIRQuery:
         """
         Initialize a FHIR query against the server with the given resource or query parameters
 
@@ -112,11 +143,21 @@ class FhirServer:
         against the server
         """
         if resource:
-            return FHIRQuery(self.api_address, resource, auth=self.auth, session=self.session,
-                             output_format=output_format)
+            return FHIRQuery(
+                self.api_address,
+                resource,
+                auth=self.auth,
+                session=self.session,
+                output_format=output_format,
+            )
         else:
-            return FHIRQuery(self.api_address, auth=self.auth, session=self.session, query_parameters=query_parameters,
-                             output_format=output_format)
+            return FHIRQuery(
+                self.api_address,
+                auth=self.auth,
+                session=self.session,
+                query_parameters=query_parameters,
+                output_format=output_format,
+            )
 
     def raw_query(self, query_string: str, output_format: str = "json") -> FHIRQuery:
         """
@@ -138,7 +179,7 @@ class FhirServer:
             resource=query_parameters.resource,
             query_parameters=query_parameters,
             session=self.session,
-            output_format=output_format
+            output_format=output_format,
         )
         return query
 
@@ -159,16 +200,22 @@ class FhirServer:
         resource = construct_fhir_element(resource_dict["resourceType"], resource_dict)
         return resource
 
-    def get_many(self, references: List[Union[str, Reference]]) -> List[FHIRAbstractModel]:
+    def get_many(
+        self, references: List[Union[str, Reference]]
+    ) -> List[FHIRAbstractModel]:
         """
         Get a list of resources from the server specified by the given references
         Args:
-            references: list of references to the resources, either a Reference object or a string of the form `{ResourceType}/{id}`
+            references: list of references to the resources, either a Reference object or a string of the form
+                        `{ResourceType}/{id}`
 
         Returns: list of resources corresponding to the references
 
         """
-        str_references = [reference if isinstance(reference, str) else reference.reference for reference in references]
+        str_references = [
+            reference if isinstance(reference, str) else reference.reference
+            for reference in references
+        ]
 
         resources = self._get_many_query(str_references)
         # todo use batched/transaction requests to get all resources in one request
@@ -176,7 +223,9 @@ class FhirServer:
         # response = self.session.post(self.api_address, json=get_many_transaction.dict(exclude_none=True))
         #
         # entries = response.json()["entry"]
-        # resources = [construct_fhir_element(entry["resource"]["resourceType"], entry["resource"]) for entry in entries]
+        # resources = [
+        #     construct_fhir_element(entry["resource"]["resourceType"], entry["resource"]) for entry in entries
+        # ]
 
         return resources
 
@@ -201,7 +250,9 @@ class FhirServer:
         response = self._upload_resource(resource)
         response.raise_for_status()
 
-        return ResourceCreateResponse(server_response_dict=dict(response.headers), resource=resource)
+        return ResourceCreateResponse(
+            server_response_dict=dict(response.headers), resource=resource
+        )
 
     def add_all(self, resources: List[Union[Resource, dict]]) -> BundleCreateResponse:
         """
@@ -216,7 +267,9 @@ class FhirServer:
         response = self._upload_bundle(bundle)
         return response
 
-    def add_bundle(self, bundle: Union[Bundle, dict, str], validate_entries: bool = True) -> BundleCreateResponse:
+    def add_bundle(
+        self, bundle: Union[Bundle, dict, str], validate_entries: bool = True
+    ) -> BundleCreateResponse:
         # create bundle and validate it
         if isinstance(bundle, dict):
             bundle = Bundle(**bundle)
@@ -251,7 +304,9 @@ class FhirServer:
                 resource_type = resource.get("resourceType")
                 if not resource_type:
                     raise ValueError("No resource type defined in resource dictionary")
-                resource = fhir.resources.construct_fhir_element(resource_type, resource)
+                resource = fhir.resources.construct_fhir_element(
+                    resource_type, resource
+                )
             elif isinstance(resource, FHIRResourceModel):
                 resource = resource.validate(resource)
             else:
@@ -270,10 +325,12 @@ class FhirServer:
 
         return response.json()
 
-    def delete(self,
-               resources: List[Union[FHIRResourceModel, dict]] = None,
-               references: List[Union[str, Reference]] = None,
-               query: FHIRQuery = None):
+    def delete(
+        self,
+        resources: List[Union[FHIRResourceModel, dict]] = None,
+        references: List[Union[str, Reference]] = None,
+        query: FHIRQuery = None,
+    ):
         """
         Delete resources from the server. Either resources or references must be specified.
         Args:
@@ -285,11 +342,17 @@ class FhirServer:
 
         """
         if resources and references:
-            raise ValueError("Cannot delete based on resources and references at the same time")
+            raise ValueError(
+                "Cannot delete based on resources and references at the same time"
+            )
         if resources and query:
-            raise ValueError("Cannot delete based on resources and query at the same time")
+            raise ValueError(
+                "Cannot delete based on resources and query at the same time"
+            )
         if references and query:
-            raise ValueError("Cannot delete based on references and query at the same time")
+            raise ValueError(
+                "Cannot delete based on references and query at the same time"
+            )
 
         transaction_bundle = self._make_delete_transaction(resources, references, query)
 
@@ -298,7 +361,9 @@ class FhirServer:
 
         return response
 
-    def transfer(self, target_server: 'FhirServer', query_result: QueryResponse) -> TransferResponse:
+    def transfer(
+        self, target_server: "FhirServer", query_result: QueryResponse
+    ) -> TransferResponse:
         """
         Transfer resources from this server to another server while using server assigned ids and keeping referential
         integrity.
@@ -314,7 +379,9 @@ class FhirServer:
         if missing_references:
             resources = self._get_missing_resources(query_result.resources)
         # transfer the resources keeping server assigned ids and referential integrity
-        response = self._transfer_resources(target_server, resources, query_result.query_params)
+        response = self._transfer_resources(
+            target_server, resources, query_result.query_params
+        )
 
         return response
 
@@ -344,8 +411,12 @@ class FhirServer:
             headers.update(self._headers)
         return headers
 
-    def _make_delete_transaction(self, resources: List[Union[Resource, dict]] = None,
-                                 references: List[Union[str, Reference]] = None, query: QueryResponse = None) -> Bundle:
+    def _make_delete_transaction(
+        self,
+        resources: List[Union[Resource, dict]] = None,
+        references: List[Union[str, Reference]] = None,
+        query: QueryResponse = None,
+    ) -> Bundle:
         delete_bundle = Bundle.construct()
         delete_bundle.type = "transaction"
         delete_bundle.entry = []
@@ -353,10 +424,10 @@ class FhirServer:
         if resources:
             print(resources)
             if isinstance(resources[0], dict):
-                resources = [fhir.resources.construct_fhir_element(
-                    resource.get("resourceType"),
-                    resource
-                )
+                resources = [
+                    fhir.resources.construct_fhir_element(
+                        resource.get("resourceType"), resource
+                    )
                     for resource in resources
                 ]
 
@@ -367,37 +438,39 @@ class FhirServer:
             delete_references = references
         elif query:
 
-            delete_references = [resource.relative_path() for resource in query.resources]
+            delete_references = [
+                resource.relative_path() for resource in query.resources
+            ]
         else:
             raise ValueError("No resources or references provided")
 
-        bundle_entries = [self._make_transaction_entry(ref, method="DELETE") for ref in delete_references]
+        bundle_entries = [
+            self._make_transaction_entry(ref, method="DELETE")
+            for ref in delete_references
+        ]
         delete_bundle.entry = bundle_entries
         return delete_bundle
 
     @staticmethod
     def _make_transaction_entry(reference: str, method: str = "POST") -> BundleEntry:
         entry = BundleEntry.construct()
-        entry.request = BundleEntryRequest(
-            **{
-                "method": method,
-                "url": reference
-            }
-        )
+        entry.request = BundleEntryRequest(**{"method": method, "url": reference})
 
         return entry
 
-    def _make_bundle_from_resource_list(self, resources: List[Union[FHIRAbstractModel, dict]]) -> Bundle:
+    def _make_bundle_from_resource_list(
+        self, resources: List[Union[FHIRAbstractModel, dict]]
+    ) -> Bundle:
         upload_bundle = Bundle.construct()
         upload_bundle.type = "transaction"
         upload_bundle.entry = []
 
         # initialize fhir model instances from dict
         if isinstance(resources[0], dict):
-            resources = [fhir.resources.construct_fhir_element(
-                resource.get("resourceType"),
-                resource
-            )
+            resources = [
+                fhir.resources.construct_fhir_element(
+                    resource.get("resourceType"), resource
+                )
                 for resource in resources
             ]
         for resource in resources:
@@ -416,10 +489,7 @@ class FhirServer:
     def _make_bundle_post_request_entry(resource: FHIRAbstractModel) -> BundleEntry:
         entry = BundleEntry().construct()
         entry.request = BundleEntryRequest(
-            **{
-                "method": "POST",
-                "url": resource.get_resource_type()
-            }
+            **{"method": "POST", "url": resource.get_resource_type()}
         )
         entry.resource = resource
 
@@ -437,7 +507,9 @@ class FhirServer:
 
     def _upload_resource(self, resource: Resource) -> Response:
         url = self.api_address + "/" + resource.get_resource_type()
-        r = requests.post(url=url, headers=self.headers, auth=self.auth, json=resource.dict())
+        r = requests.post(
+            url=url, headers=self.headers, auth=self.auth, json=resource.dict()
+        )
         return r
 
     def _get_meta_data(self):
@@ -454,18 +526,13 @@ class FhirServer:
 
     def _make_server_summary(self) -> ServerSummary:
         resources = []
-        summary = {
-            "name": self.api_address
-        }
+        summary = {"name": self.api_address}
         for resource in self.rest_resources:
             url = self.api_address + "/" + resource + "?_summary=count"
             r = self.session.get(url)
             r.raise_for_status()
 
-            resource_dict = {
-                "resource": resource,
-                "count": r.json().get("total")
-            }
+            resource_dict = {"resource": resource, "count": r.json().get("total")}
             resources.append(resource_dict)
 
         summary["resources"] = resources
@@ -474,16 +541,20 @@ class FhirServer:
 
     def _get_oidc_token(self):
         # get a new token if it is expired or not yet set
-        if (self.token_expiration and pendulum.now() > self.token_expiration) or not self.token:
+        if (
+            self.token_expiration and pendulum.now() > self.token_expiration
+        ) or not self.token:
             client = BackendApplicationClient(client_id=self.client_id)
             oauth = OAuth2Session(client=client)
             token = oauth.fetch_token(
                 token_url=self.oidc_provider_url,
                 client_secret=self.client_secret,
-                client_id=self.client_id
+                client_id=self.client_id,
             )
             self.token = token["access_token"]
-            self.token_expiration = pendulum.now() + pendulum.duration(seconds=token["expires_in"])
+            self.token_expiration = pendulum.now() + pendulum.duration(
+                seconds=token["expires_in"]
+            )
 
     @staticmethod
     def validate_api_address(api_address: str) -> str:
@@ -500,13 +571,15 @@ class FhirServer:
         """
 
         regex = re.compile(
-            r'^(?:http|ftp)s?://'  # http:// or https://
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
-            r'localhost|'  # localhost...
-            r'[A-Za-z0-9_-]*|'  # single word with hyphen/underscore for docker
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+            r"^(?:http|ftp)s?://"  # http:// or https://
+            r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...
+            r"localhost|"  # localhost...
+            r"[A-Za-z0-9_-]*|"  # single word with hyphen/underscore for docker
+            r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
+            r"(?::\d+)?"  # optional port
+            r"(?:/?|[/?]\S+)$",
+            re.IGNORECASE,
+        )
 
         if re.match(regex, api_address):
             if api_address[-1] == "/":
@@ -519,23 +592,38 @@ class FhirServer:
     def _validate_auth(self) -> Union[requests.auth.AuthBase, None]:
         if self._auth and (self.username or self.password):
             raise ValueError(
-                "Only one authentication method can be used, auth object and username/password are mutually exclusive")
+                "Only one authentication method can be used, auth object and username/password are mutually exclusive"
+            )
         if self._auth and self.token:
-            raise ValueError("Only one authentication method can be used, auth object and token are mutually exclusive")
-        if self._auth and (self.client_id or self.client_secret or self.oidc_provider_url):
             raise ValueError(
-                "Only one authentication method can be used, auth object and OIDC auth are mutually exclusive")
+                "Only one authentication method can be used, auth object and token are mutually exclusive"
+            )
+        if self._auth and (
+            self.client_id or self.client_secret or self.oidc_provider_url
+        ):
+            raise ValueError(
+                "Only one authentication method can be used, auth object and OIDC auth are mutually exclusive"
+            )
 
-        if self.token and (self.client_id or self.client_secret or self.oidc_provider_url):
-            raise ValueError("Only one authentication method can be used, token and OIDC auth are mutually exclusive")
+        if self.token and (
+            self.client_id or self.client_secret or self.oidc_provider_url
+        ):
+            raise ValueError(
+                "Only one authentication method can be used, token and OIDC auth are mutually exclusive"
+            )
 
         if self.token and (self.username or self.password):
             raise ValueError(
-                "Only one authentication method can be used, token and username/password are mutually exclusive")
+                "Only one authentication method can be used, token and username/password are mutually exclusive"
+            )
 
-        if (self.username or self.password) and (self.client_id or self.client_secret or self.oidc_provider_url):
-            raise ValueError("Only one authentication method can be used, username/password and "
-                             "OIDC auth are mutually exclusive")
+        if (self.username or self.password) and (
+            self.client_id or self.client_secret or self.oidc_provider_url
+        ):
+            raise ValueError(
+                "Only one authentication method can be used, username/password and "
+                "OIDC auth are mutually exclusive"
+            )
 
         if self._auth:
             return self._auth
@@ -557,7 +645,10 @@ class FhirServer:
         get_bundle = Bundle.construct()
         get_bundle.type = "batch"
         # create transaction entries and add them to the bundle
-        entries = [self._make_transaction_entry(reference, "GET") for reference in str_references]
+        entries = [
+            self._make_transaction_entry(reference, "GET")
+            for reference in str_references
+        ]
         get_bundle.entry = entries
         # validate bundle
         get_bundle = Bundle(**get_bundle.dict(exclude_none=True))
@@ -575,14 +666,20 @@ class FhirServer:
         for resource_type, resource_ids in resource_refs.items():
             params = FHIRQueryParameters(
                 resource=resource_type,
-                resource_parameters=[FieldParameter(field="_id", value=resource_ids, operator=QueryOperators.in_)]
+                resource_parameters=[
+                    FieldParameter(
+                        field="_id", value=resource_ids, operator=QueryOperators.in_
+                    )
+                ],
             )
 
             query_resources = self.query(query_parameters=params).all().resources
             resources.extend(query_resources)
         return resources
 
-    def _get_missing_resources(self, resources: List[Union[Resource, FHIRAbstractModel]]):
+    def _get_missing_resources(
+        self, resources: List[Union[Resource, FHIRAbstractModel]]
+    ):
         missing = check_missing_references(resources)
 
         while missing:
@@ -592,10 +689,12 @@ class FhirServer:
 
         return resources
 
-    def _transfer_resources(self,
-                            target_server: 'FhirServer',
-                            resources: List[FHIRAbstractModel],
-                            params: FHIRQueryParameters = None) -> TransferResponse:
+    def _transfer_resources(
+        self,
+        target_server: "FhirServer",
+        resources: List[FHIRAbstractModel],
+        params: FHIRQueryParameters = None,
+    ) -> TransferResponse:
         graph = reference_graph(resources)
         create_responses = self._resolve_reference_graph(graph, target_server)
 
@@ -603,15 +702,19 @@ class FhirServer:
             origin_server=self.api_address,
             destination_server=target_server.api_address,
             create_responses=create_responses,
-            query_parameters=params
+            query_parameters=params,
         )
 
-    def _resolve_reference_graph(self, graph: DiGraph, server: 'FhirServer') -> List[ResourceCreateResponse]:
+    def _resolve_reference_graph(
+        self, graph: DiGraph, server: "FhirServer"
+    ) -> List[ResourceCreateResponse]:
         create_responses = []
         nodes = graph.nodes
         while len(nodes) > 0:
             # find the nodes without references and add them to the target server
-            top_nodes = [node for node in nodes if len(list(graph.predecessors(node))) == 0]
+            top_nodes = [
+                node for node in nodes if len(list(graph.predecessors(node))) == 0
+            ]
             resources = [graph.nodes[node]["resource"] for node in top_nodes]
             add_response = server.add_all(resources)
             # update dependant nodes in the graph with the obtained references
@@ -645,8 +748,12 @@ class FhirServer:
                     # Find the item that references the node
                     reference_list = graph.nodes[successor]["resource"].dict()[field]
                     reference_item = next(
-                        (item for item in reference_list if item.get("reference") == str(node)),
-                        None
+                        (
+                            item
+                            for item in reference_list
+                            if item.get("reference") == str(node)
+                        ),
+                        None,
                     )
                     # if the item is found replace it with the obtained reference
                     if reference_item:
@@ -671,7 +778,7 @@ def _api_address_from_env() -> str:
     if not api_url:
         api_url = os.getenv("FHIR_SERVER_URL")
     if not api_url:
-        raise EnvironmentError("No FHIR api address specified")
+        raise OSError("No FHIR api address specified")
     return FhirServer.validate_api_address(api_url)
 
 
@@ -686,16 +793,22 @@ def _auth_info_from_env() -> Union[str, Tuple[str, str], Tuple[str, str, str]]:
     oidc_provider_url = os.getenv("OIDC_PROVIDER_URL")
 
     if username and token:
-        raise EnvironmentError("Conflicting auth information, bother username and token present.")
+        raise OSError(
+            "Conflicting auth information, bother username and token present."
+        )
     if username and client_id:
-        raise EnvironmentError("Conflicting auth information, bother username and client id present")
+        raise OSError(
+            "Conflicting auth information, bother username and client id present"
+        )
     if token and client_id:
-        raise EnvironmentError("Conflicting auth information, bother static token and client id present")
+        raise OSError(
+            "Conflicting auth information, bother static token and client id present"
+        )
 
     if username:
         password = os.getenv("FHIR_PW")
         if not password:
-            raise EnvironmentError(f"No password specified for user: {username}")
+            raise OSError(f"No password specified for user: {username}")
         else:
             print(f"Basic auth environment info found -> ({username}:******)")
             return username, password
@@ -704,11 +817,17 @@ def _auth_info_from_env() -> Union[str, Tuple[str, str], Tuple[str, str, str]]:
         return token
 
     if client_id and not client_secret:
-        raise EnvironmentError("Insufficient auth information, client id specified but no client secret found.")
+        raise OSError(
+            "Insufficient auth information, client id specified but no client secret found."
+        )
 
     if (client_id and client_secret) and not oidc_provider_url:
-        raise EnvironmentError("Insufficient auth information, client id and secret "
-                               "specified but no provider URL found")
+        raise OSError(
+            "Insufficient auth information, client id and secret "
+            "specified but no provider URL found"
+        )
     if client_id and client_secret and oidc_provider_url:
-        print(f"Found OIDC auth configuration for client <{client_id}> with provider {oidc_provider_url}")
+        print(
+            f"Found OIDC auth configuration for client <{client_id}> with provider {oidc_provider_url}"
+        )
         return client_id, client_secret, oidc_provider_url

@@ -1,10 +1,11 @@
 import os
+
 import pytest
-from dotenv import load_dotenv, find_dotenv
-
+from dotenv import find_dotenv
+from dotenv import load_dotenv
 from fhir_kindling import FhirServer
-
-from fhir_kindling.figures import server_summary_plot, plot_resource_field
+from fhir_kindling.figures import plot_resource_field
+from fhir_kindling.figures import server_summary_plot
 
 
 @pytest.fixture
@@ -24,7 +25,7 @@ def fhir_server(api_url):
         api_address=api_url,
         client_id=os.getenv("CLIENT_ID"),
         client_secret=os.getenv("CLIENT_SECRET"),
-        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL")
+        oidc_provider_url=os.getenv("OIDC_PROVIDER_URL"),
     )
     return server
 
@@ -40,5 +41,7 @@ def test_plot_resource_field(fhir_server):
     patients = fhir_server.query("Patient").all()
     fig = plot_resource_field(patients.resources, field="gender", show=False)
     assert fig
-    fig = plot_resource_field(patients.resources, field="gender", plot_type="pie", show=False)
+    fig = plot_resource_field(
+        patients.resources, field="gender", plot_type="pie", show=False
+    )
     assert fig

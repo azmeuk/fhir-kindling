@@ -1,13 +1,13 @@
 ## Upload data to a fhir server
-Using this library resources can be added to a fhir server as single resources, lists or as predefined 
+Using this library resources can be added to a fhir server as single resources, lists or as predefined
 bundles.
 
 
 ### Uploading a single resource
 
 Uploading a single resource is done by calling the `add` function on a FHIR server.
-The response contains the resource including the server defined id of the resource.  
-The add function takes as argument either a dictionary containing the definition of a resource or a 
+The response contains the resource including the server defined id of the resource.
+The add function takes as argument either a dictionary containing the definition of a resource or a
 pydantic model object of the resource.
 
 #### Pydantic model
@@ -34,9 +34,3 @@ To upload an existing bundle to a FHIR server use the upload command of the cli,
 
 
 ## Transferring data between FHIR servers
-
-
-
-
-
-

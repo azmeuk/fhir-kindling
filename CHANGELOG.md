@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.8.0] - 2022-03-18
-Resource transfer between servers and querying resources by reference.  
+Resource transfer between servers and querying resources by reference.
 `get`, `get_many` for querying resource by reference
 `server.transfer(other_server, query_result)` for transferring resources
 
@@ -41,7 +41,7 @@ Query Response with included resources. Reworked Generators
  - [x] Generator parameters for Resources and Fields
  - [x] Field generators for generating resource fields based on probabilistic choices or a generator function
  - [x] Resource generator field values based on static value or list
- - [x] Patient based data set generator 
+ - [x] Patient based data set generator
 
 ### Changed
 - Query interface `where, include, has` now can add query parameters based on method arguments or parameter objects.
@@ -51,7 +51,7 @@ Query Response with included resources. Reworked Generators
 
 ## [0.5.0] - 2021-11-12
 
-Query Parameters, include/revinclude, reverse chaining.  
+Query Parameters, include/revinclude, reverse chaining.
 
 ### Added
  - [x] Query Parameters classes, for regular queries, including resources and reverse chaining

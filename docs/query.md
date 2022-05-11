@@ -1,10 +1,10 @@
 ## Query Resources
 The most basic building block of a FHIR query is the resource being queried. That's why the entrypoint to querying a
-FHIR server, is specifying the resource to query for.  
+FHIR server, is specifying the resource to query for.
 After connecting to a FHIR server the API can be queried in a number of ways.
 
 ### Simple example
-After initializing the client, you can query the server for a list of all the patients in the system.  
+After initializing the client, you can query the server for a list of all the patients in the system.
 
 ```python
 from fhir_kindling import FhirServer
@@ -21,7 +21,7 @@ results = query.all()
 ```
 
 ### Query using pydantic resource
-The resource to be queried can also be specified using a pydantic model from the fhir.resources library.  
+The resource to be queried can also be specified using a pydantic model from the fhir.resources library.
 
 ```python
 from fhir_kindling import FhirServer

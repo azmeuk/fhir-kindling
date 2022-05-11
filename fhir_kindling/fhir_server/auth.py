@@ -1,4 +1,5 @@
 import os
+
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -18,8 +19,12 @@ def load_environment_auth_vars() -> tuple:
     return username, password, token
 
 
-def generate_auth(username: str = None, password: str = None, token: str = None,
-                  load_env: bool = False) -> requests.auth.AuthBase:
+def generate_auth(
+    username: str = None,
+    password: str = None,
+    token: str = None,
+    load_env: bool = False,
+) -> requests.auth.AuthBase:
     """Generate authentication for the request to be sent to server. Either based on a given bearer token or using basic
     auth with username and password.
 
@@ -35,14 +40,18 @@ def generate_auth(username: str = None, password: str = None, token: str = None,
     if (not username and not password) and not token:
 
         if load_env:
-            print("No authentication given. Attempting authentication via environment variables")
+            print(
+                "No authentication given. Attempting authentication via environment variables"
+            )
             username, password, token = load_environment_auth_vars()
 
         if (not username and not password) and not token:
             raise ValueError("No authentication information given.")
 
     if (username and password) and token:
-        raise ValueError("Conflicting authentication information both token and username:password set.")
+        raise ValueError(
+            "Conflicting authentication information both token and username:password set."
+        )
 
     if username and not password:
         raise ValueError(f"Missing password for user: {username}")
@@ -66,4 +75,3 @@ class BearerAuth(requests.auth.AuthBase):
 
     def __repr__(self):
         return f"BearerAuth(token={self.token[:16]}...)"
-

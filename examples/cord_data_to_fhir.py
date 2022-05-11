@@ -1,11 +1,12 @@
 import os
-from dotenv import load_dotenv, find_dotenv
-from fhir_kindling import FhirServer
+
+import pandas as pd
+from dotenv import find_dotenv
+from dotenv import load_dotenv
 from fhir.resources.codeableconcept import CodeableConcept
 from fhir.resources.coding import Coding
 from fhir.resources.condition import Condition
-import pandas as pd
-
+from fhir_kindling import FhirServer
 from fhir_kindling.generators import PatientGenerator
 
 
@@ -13,8 +14,8 @@ def split_cord_data():
     cord_test_data = pd.read_csv("../examples/cord/A2-1.csv")
     patients_per_station = int(len(cord_test_data) / 3)
     df_1 = cord_test_data[:patients_per_station]
-    df_2 = cord_test_data[patients_per_station:2 * patients_per_station]
-    df_3 = cord_test_data[2 * patients_per_station:]
+    df_2 = cord_test_data[patients_per_station : 2 * patients_per_station]
+    df_3 = cord_test_data[2 * patients_per_station :]
 
     df_1.to_csv("../examples/cord/data_station_1.csv")
     df_2.to_csv("../examples/cord/data_station_2.csv")
@@ -31,23 +32,27 @@ def upload_cord_data(csv_file, server_address):
         condition = Condition.construct()
 
         condition.clinicalStatus = CodeableConcept(
-            coding=[Coding(
-                **{
-                    "system": "http://hl7.org/fhir/condition-clinical",
-                    "code": "active",
-                    "display": "Active"
-                }
-            )]
+            coding=[
+                Coding(
+                    **{
+                        "system": "http://hl7.org/fhir/condition-clinical",
+                        "code": "active",
+                        "display": "Active",
+                    }
+                )
+            ]
         )
 
         condition.code = CodeableConcept(
-            coding=[Coding(
-                **{
-                    "system": code_system,
-                    "code": row["AngabeDiag1"],
-                    "display": row["TextDiagnose1"],
-                }
-            ).dict()]
+            coding=[
+                Coding(
+                    **{
+                        "system": code_system,
+                        "code": row["AngabeDiag1"],
+                        "display": row["TextDiagnose1"],
+                    }
+                ).dict()
+            ]
         )
         return condition
 
@@ -61,8 +66,12 @@ def upload_cord_data(csv_file, server_address):
 
     n_patients = len(condition_resource_list)
 
-    server = FhirServer(api_address=server_address, client_id=client_id, client_secret=client_secret,
-                        oidc_provider_url=provider_url)
+    server = FhirServer(
+        api_address=server_address,
+        client_id=client_id,
+        client_secret=client_secret,
+        oidc_provider_url=provider_url,
+    )
 
     patient_generator = PatientGenerator(n=n_patients)
     patients = patient_generator.generate()
@@ -81,7 +90,7 @@ def upload_cord_data(csv_file, server_address):
     print(response)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     load_dotenv(find_dotenv())
     data_path = "../examples/cord/data_station_1.csv"
     # split_cord_data()

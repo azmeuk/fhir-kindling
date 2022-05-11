@@ -30,7 +30,7 @@ pip install fhir-kindling --user
 ```python
 from fhir_kindling import FhirServer
 
-# Connect with basic auth 
+# Connect with basic auth
 basic_auth_server = FhirServer("https://fhir.server/fhir", username="admin", password="admin")
 # Connect with static token
 token_server = FhirServer("https://fhir.server/fhir", token="your_token")
@@ -95,7 +95,7 @@ response = query_patient_condition.all()
 ```
 
 #### Query resources by reference
-If you know the id and resource type of the resource you want to query, you can use the `get` method for a single reference 
+If you know the id and resource type of the resource you want to query, you can use the `get` method for a single reference
 for a list of references use `get_many`. The passed references should follow the format of `<resource_type>/<id>`.
 ```python
 # server initialization omitted
@@ -130,7 +130,7 @@ response = server.add_all(patients)
 ### Deleting/Updating resources
 
 Resources can be deleted from the server using the `delete` method on the server object, it takes as input either
-references to the resources or the resources itself.  
+references to the resources or the resources itself.
 Similarly the `update` method can be used to update the resources on the server, by passing a list of updated resources.
 
 ```python
@@ -159,8 +159,8 @@ server.delete(resources=response.resources[5:])
 
 ### Transfer resources between servers
 Transferring resources between servers is done using the `transfer` method on the server object. Using this method
-server assigned ids are used for transfer and referential integrity is maintained.  
-This method will also attempt to get all the resources that are referenced by the resources being transferred from the origin 
+server assigned ids are used for transfer and referential integrity is maintained.
+This method will also attempt to get all the resources that are referenced by the resources being transferred from the origin
 server and transfer them to the destination server as well.
 
 ```python
@@ -181,8 +181,3 @@ response = server_1.transfer(server_2, conditions)
 
 This package was created with Cookiecutter and
 the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter) project template.
-
-
-
-
-

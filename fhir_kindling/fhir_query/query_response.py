@@ -1,25 +1,31 @@
 import collections
 import pathlib
-from typing import Union, List, Dict, Optional, Callable, Any
 from enum import Enum
 from inspect import signature
+from typing import Any
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 import pandas as pd
-from fhir.resources.bundle import Bundle
-from fhir.resources import FHIRAbstractModel
-from fhir.resources.fhirresourcemodel import FHIRResourceModel
-from pydantic import BaseModel
-from requests import Session, Response
 import xmltodict
-
+from fhir.resources import FHIRAbstractModel
+from fhir.resources.bundle import Bundle
+from fhir.resources.fhirresourcemodel import FHIRResourceModel
 from fhir_kindling.fhir_query.query_parameters import FHIRQueryParameters
 from fhir_kindling.serde import flatten_resources
+from pydantic import BaseModel
+from requests import Response
+from requests import Session
 
 
 class OutputFormats(Enum):
     """
     Enum for the output formats.
     """
+
     JSON = "json"
     XML = "xml"
     CSV = "csv"
@@ -34,6 +40,7 @@ class IncludedResources(BaseModel):
     """
     Container for resources included in the query via the _include/_revinclude parameters.
     """
+
     resource_type: str
     resources: Optional[List[FHIRAbstractModel]] = None
 
@@ -51,15 +58,18 @@ class QueryResponse:
     Response object for the results of a FHIR query executed against a FHIR server.
     """
 
-    def __init__(self,
-                 session: Session,
-                 response: Response,
-                 query_params: FHIRQueryParameters,
-                 output_format: str = "json",
-                 limit: int = None,
-                 count: int = None,
-                 page_callback: Union[Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None] = None
-                 ):
+    def __init__(
+        self,
+        session: Session,
+        response: Response,
+        query_params: FHIRQueryParameters,
+        output_format: str = "json",
+        limit: int = None,
+        count: int = None,
+        page_callback: Union[
+            Callable[[List[FHIRAbstractModel]], Any], Callable[[], Any], None
+        ] = None,
+    ):
 
         self.session = session
         self.format = output_format
@@ -118,7 +128,9 @@ class QueryResponse:
 
             included = []
             for resource_type, resources in self._included_resources.items():
-                included.append(IncludedResources(resource_type=resource_type, resources=resources))
+                included.append(
+                    IncludedResources(resource_type=resource_type, resources=resources)
+                )
             return included
 
     def save(self, file_path: Union[str, pathlib.Path], format: str = "json"):
@@ -154,8 +166,10 @@ class QueryResponse:
             if self.query_params.include_parameters:
                 for included_resources in self.included_resources:
                     df = flatten_resources(included_resources.resources)
-                    included__resource_path = f"{file_path.parent}/{file_path.stem}_" \
-                                              f"included_{included_resources.resource_type}.csv"
+                    included__resource_path = (
+                        f"{file_path.parent}/{file_path.stem}_"
+                        f"included_{included_resources.resource_type}.csv"
+                    )
                     df.to_csv(included__resource_path, index=False)
             df = flatten_resources(self.resources)
             df.to_csv(file_path, index=False)
@@ -201,10 +215,14 @@ class QueryResponse:
             # process included resources
             elif entry.search.mode == "include":
                 # get list of included resources based on type, if it does not return empty list
-                included_resources = self._included_resources.get(entry.resource.resource_type, [])
+                included_resources = self._included_resources.get(
+                    entry.resource.resource_type, []
+                )
                 # update the list with the entry and update the included resources dict
                 included_resources.append(entry.resource)
-                self._included_resources[entry.resource.resource_type] = included_resources
+                self._included_resources[
+                    entry.resource.resource_type
+                ] = included_resources
 
     def _process_server_response(self, response: Response) -> Union[Dict, Bundle, str]:
         """
@@ -237,7 +255,9 @@ class QueryResponse:
         # if there are no entries, return the initial response
         if not entries:
             self.status_code = ResponseStatusCodes.NOT_FOUND
-            print(f"No resources match the query - query url: {self.query_params.to_query_string()}")
+            print(
+                f"No resources match the query - query url: {self.query_params.to_query_string()}"
+            )
             return server_response.text
         else:
             self.status_code = ResponseStatusCodes.OK
@@ -269,7 +289,9 @@ class QueryResponse:
                 print("All pages found")
                 break
         # added the paginated resources to the initial response
-        initial_response["Bundle"]["entry"] = entries[:self._limit] if self._limit else entries
+        initial_response["Bundle"]["entry"] = (
+            entries[: self._limit] if self._limit else entries
+        )
         full_response_xml = xmltodict.unparse(initial_response, pretty=True)
         return full_response_xml
 
@@ -294,7 +316,7 @@ class QueryResponse:
             # if the limit is reached, stop resolving the pagination
             if self._limit:
                 if len(entries) >= self._limit:
-                    response_entries = response["entry"][:self._limit]
+                    response_entries = response["entry"][: self._limit]
                     response["entry"] = response_entries
                     self._execute_callback(response_entries)
                     return response
@@ -304,7 +326,14 @@ class QueryResponse:
                     print("Limit reached stopping pagination resolve")
                     break
 
-                next_page = next((link for link in response["link"] if link.get("relation", None) == "next"), None)
+                next_page = next(
+                    (
+                        link
+                        for link in response["link"]
+                        if link.get("relation", None) == "next"
+                    ),
+                    None,
+                )
 
                 if next_page:
                     response = self.session.get(next_page["url"]).json()
@@ -314,7 +343,7 @@ class QueryResponse:
                 else:
                     break
 
-            response["entry"] = entries[:self._limit] if self._limit else entries
+            response["entry"] = entries[: self._limit] if self._limit else entries
             return response
 
     def _execute_callback(self, entries: list):
@@ -323,7 +352,9 @@ class QueryResponse:
             callback_signature = signature(self.page_callback)
 
             if len(callback_signature.parameters) > 1:
-                raise ValueError("The callback function should have at most one parameter")
+                raise ValueError(
+                    "The callback function should have at most one parameter"
+                )
 
             elif len(callback_signature.parameters) == 1:
                 self.page_callback(entries)

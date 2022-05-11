@@ -4,7 +4,7 @@ CRUD library for fhir servers, with resource validation and parsing powered by
 [pydantic](https://github.com/samuelcolvin/pydantic)
 models created in the [fhir.resources](https://github.com/nazrulworld/fhir.resources) library.
 
-!!!warning 
+!!!warning
     Under construction. This documentation is not complete.
 
 ## Features
@@ -40,13 +40,13 @@ The `fhir kindling` command should now be available in your shell (with the venv
 ```python
 from fhir_kindling import FhirServer
 
-# Connect with basic auth 
+# Connect with basic auth
 basic_auth_server = FhirServer("https://fhir.server/fhir", username="admin", password="admin")
 # Connect with static token
 token_server = FhirServer("https://fhir.server/fhir", token="your_token")
 
 # Connect using oauth2/oidc
-oidc_server = FhirServer("https://fhir.server/fhir", client_id="client_id", client_secret="secret", 
+oidc_server = FhirServer("https://fhir.server/fhir", client_id="client_id", client_secret="secret",
                          oidc_provider_url="url")
 
 # Print the server's capability statement
